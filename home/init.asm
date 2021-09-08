@@ -143,8 +143,8 @@ Init::
 	farcall StartClock
 
 	xor a
-	ld [MBC3LatchClock], a
-	ld [MBC3SRamEnable], a
+;	ld [TPP1LatchClock], a
+	ld [TPP1SRamEnable], a
 
 	ldh a, [hCGB]
 	and a

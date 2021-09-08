@@ -26,7 +26,7 @@ ROM0
 	"joypad"
 	org $0100
 	"Header"
-	org $0150
+	org $0154
 	"Home"
 ROMX $01
 	"bank1"

@@ -15,26 +15,69 @@ WRAM1_End   EQU $e000
 HRAM_Begin  EQU $ff80
 HRAM_End    EQU $ffff
 
-; MBC3
-MBC3SRamEnable EQU $0000
-MBC3RomBank    EQU $2000
-MBC3SRamBank   EQU $4000
-MBC3LatchClock EQU $6000
-MBC3RTC        EQU $a000
+; TPP1
+TPP1_CARTRIDGE_TYPE   EQU $bc
+TPP1_RAM_SIZE         EQU $c1
+TPP1_DESTINATION_CODE EQU $65
 
-SRAM_DISABLE EQU $00
-SRAM_ENABLE  EQU $0a
+TPP1_MAJOR_VER EQU $01
+TPP1_MINOR_VER EQU $00
 
-NUM_SRAM_BANKS EQU 4
+TPP1RomBank    EQU $0000
+TPP1RomBankHi  EQU $0001
+TPP1SRamBank   EQU $0002
+TPP1LatchClock EQU $0003
+TPP1SRamEnable EQU $0003
+TPP1RTC        EQU $a000
 
-RTC_S  EQU $08 ; Seconds   0-59 (0-3Bh)
-RTC_M  EQU $09 ; Minutes   0-59 (0-3Bh)
-RTC_H  EQU $0a ; Hours     0-23 (0-17h)
-RTC_DL EQU $0b ; Lower 8 bits of Day Counter (0-FFh)
-RTC_DH EQU $0c ; Upper 1 bit of Day Counter, Carry Bit, Halt Flag
-        ; Bit 0  Most significant bit of Day Counter (Bit 8)
-        ; Bit 6  Halt (0=Active, 1=Stop Timer)
-        ; Bit 7  Day Counter Carry Bit (1=Counter Overflow)
+MR0 EQU $a000 ; r/w
+MR1 EQU $a001 ; r/w
+MR2 EQU $a002 ; r/w
+MR3 EQU $a003 ; write-only
+MR4 EQU $a003 ; read-only
+
+TPP1_SRAM_SIZE EQU $03
+IF TPP1_SRAM_SIZE == 0
+NUM_SRAM_BANKS EQU 0
+ELSE
+NUM_SRAM_BANKS EQU 1 << (TPP1_SRAM_SIZE - 1)
+ENDC
+
+SRAM_DISABLE     EQU $00
+SRAM_ENABLE_R    EQU $02
+SRAM_ENABLE      EQU $03
+RTC_REG_ENABLE   EQU $05
+LATCH_RTC        EQU $10
+SET_RTC          EQU $11
+CLR_RTC_OVERFLOW EQU $14
+STOP_RTC         EQU $18
+START_RTC        EQU $19
+RUMBLE_OFF       EQU $20
+RUMBLE_SLOW      EQU $21
+RUMBLE_MEDIUM    EQU $22
+RUMBLE_FAST      EQU $23
+
+RTC_W  EQU $00 ; Weeks    0-100 (0-64h)
+RTC_DH EQU $01 ; Day/Hour
+	; Bit 0-4 Hour 0-23 (0-17h)
+	; Bit 5-7 Day  0-6  (0-06h)
+RTC_M  EQU $02 ; Minutes   0-59 (0-3Bh)
+RTC_S  EQU $03 ; Seconds   0-59 (0-3Bh)
+
+RTC_H_MASK EQU %00011111
+RTC_D_MASK EQU %11100000
+
+TPP1_FEAT_RUMBLE_F       EQU 0
+TPP1_FEAT_RUMBLE_SPEED_F EQU 1
+TPP1_FEAT_RTC_F          EQU 2
+TPP1_FEAT_BATTERY_F      EQU 3
+
+MR4_RUMBLE_SPEED_MASK EQU %00000011
+MR4_RTC_ON            EQU %00000100
+MR4_RTC_OVERFLOW      EQU %00001000
+
+MR4_RTC_ON_F          EQU 2
+MR4_RTC_OVERFLOW_F    EQU 3
 
 ; interrupt flags
 VBLANK   EQU 0

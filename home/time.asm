@@ -13,10 +13,14 @@ AskTimer::
 
 LatchClock::
 ; latch clock counter data
-	ld a, 0
-	ld [MBC3LatchClock], a
-	ld a, 1
-	ld [MBC3LatchClock], a
+	ld a, LATCH_RTC
+	ld [TPP1LatchClock], a
+
+; waste some time to allow clock to latch properly
+	nop
+	nop
+	nop
+
 	ret
 
 UpdateTime::
@@ -28,39 +32,54 @@ UpdateTime::
 
 GetClock::
 ; store clock data in hRTCDayHi-hRTCSeconds
+	call LatchClock
 
 ; enable clock r/w
-	ld a, SRAM_ENABLE
-	ld [MBC3SRamEnable], a
+	ld a, RTC_REG_ENABLE
+	ld [TPP1SRamEnable], a
 
-; clock data is 'backwards' in hram
+	ld de, TPP1RTC
 
-	call LatchClock
-	ld hl, MBC3SRamBank
-	ld de, MBC3RTC
+	ld a, [de] ; weeks
+	maskbits 100
+	cp 50
+	jr c, .got_weeks
+	sub 50
+.got_weeks
+	push bc
+	ld c, a
+	ld b, 0
+	ld hl, 0
+	ld a, 7
+	call AddNTimes
+	pop bc
+	inc de
 
-	ld [hl], RTC_S
-	ld a, [de]
-	maskbits 60
-	ldh [hRTCSeconds], a
+	ld a, [de] ; day / hour
+	and RTC_D_MASK ; day
+	swap a
+	srl a
+	add l
+	ldh [hRTCDayLo], a
+	ld a, h
+	jr nc, .set_day_hi
+	inc h
+.set_day_hi
+	ldh [hRTCDayHi], a
 
-	ld [hl], RTC_M
-	ld a, [de]
+	ld a, [de] ; day / hour
+	and RTC_H_MASK ; hour
+	ldh [hRTCHours], a
+	inc de
+
+	ld a, [de] ; minutes
 	maskbits 60
 	ldh [hRTCMinutes], a
+	inc de
 
-	ld [hl], RTC_H
-	ld a, [de]
-	maskbits 24
-	ldh [hRTCHours], a
-
-	ld [hl], RTC_DL
-	ld a, [de]
-	ldh [hRTCDayLo], a
-
-	ld [hl], RTC_DH
-	ld a, [de]
-	ldh [hRTCDayHi], a
+	ld a, [de] ; seconds
+	maskbits 60
+	ldh [hRTCSeconds], a
 
 ; unlatch clock / disable clock r/w
 	jp CloseSRAM
@@ -206,39 +225,41 @@ PanicResetClock::
 
 SetClock::
 ; set clock data from hram
+	call LatchClock
 
 ; enable clock r/w
-	ld a, SRAM_ENABLE
-	ld [MBC3SRamEnable], a
+	ld a, RTC_REG_ENABLE
+	ld [TPP1SRamEnable], a
 
-; set clock data
-; stored 'backwards' in hram
+	ld de, TPP1RTC
 
-	call LatchClock
-	ld hl, MBC3SRamBank
-	ld de, MBC3RTC
-
-; seconds
-	ld [hl], RTC_S
-	ldh a, [hRTCSeconds]
+	; hRTCDayHi is always 0 when calling SetClock
+	ldh a, [hRTCDayLo]
+	ld c, 7
+	call SimpleDivide
+	push af
+	ld a, b
 	ld [de], a
-; minutes
-	ld [hl], RTC_M
+	inc de
+
+	pop af
+	add a
+	swap a
+	ld b, a
+	ldh a, [hRTCHours]
+	or b
+	ld [de], a
+	inc de
+
 	ldh a, [hRTCMinutes]
 	ld [de], a
-; hours
-	ld [hl], RTC_H
-	ldh a, [hRTCHours]
+	inc de
+
+	ldh a, [hRTCSeconds]
 	ld [de], a
-; day lo
-	ld [hl], RTC_DL
-	ldh a, [hRTCDayLo]
-	ld [de], a
-; day hi
-	ld [hl], RTC_DH
-	ldh a, [hRTCDayHi]
-	res 6, a ; make sure timer is active
-	ld [de], a
+
+	ld a, SET_RTC
+	ld [TPP1LatchClock], a
 
 ; cleanup
 	jp CloseSRAM ; unlatch clock, disable clock r/w

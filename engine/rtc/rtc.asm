@@ -1,25 +1,33 @@
 Unreferenced_StopRTC:
 	ld a, SRAM_ENABLE
-	ld [MBC3SRamEnable], a
+	ld [TPP1SRamEnable], a
 	call LatchClock
 	ld a, RTC_DH
-	ld [MBC3SRamBank], a
-	ld a, [MBC3RTC]
+	ld [TPP1SRamBank], a
+	ld a, [TPP1RTC]
 	set 6, a ; halt
-	ld [MBC3RTC], a
+	ld [TPP1RTC], a
 	call CloseSRAM
 	ret
 
 StartRTC:
-	ld a, SRAM_ENABLE
-	ld [MBC3SRamEnable], a
-	call LatchClock
-	ld a, RTC_DH
-	ld [MBC3SRamBank], a
-	ld a, [MBC3RTC]
-	res 6, a ; halt
-	ld [MBC3RTC], a
-	call CloseSRAM
+	ld hl, MR4
+	bit MR4_RTC_ON_F, [hl]
+	ret nz ; if rtc on, return with no action
+; otherwise, initialize and start rtc
+	ld hl, TPP1RTC
+	xor a
+	ld [hli], a
+	ld [hli], a
+	ld [hli], a
+	ld [hl], a
+	ld a, SET_RTC
+	ld [TPP1LatchClock], a
+REPT 6
+	nop ; for timing
+ENDR
+	ld a, START_RTC
+	ld [TPP1LatchClock], a
 	ret
 
 GetTimeOfDay::
@@ -74,15 +82,13 @@ StageRTCTimeForSave:
 	ret
 
 SaveRTC:
-	ld a, $a
-	ld [MBC3SRamEnable], a
 	call LatchClock
-	ld hl, MBC3RTC
-	ld a, $c
-	ld [MBC3SRamBank], a
-	res 7, [hl]
+	ld a, CLR_RTC_OVERFLOW
+	ld [TPP1LatchClock], a
+
 	ld a, BANK(sRTCStatusFlags)
-	ld [MBC3SRamBank], a
+	call OpenSRAM
+	ld [TPP1SRamBank], a
 	xor a
 	ld [sRTCStatusFlags], a
 	call CloseSRAM
@@ -90,14 +96,14 @@ SaveRTC:
 
 StartClock::
 	call GetClock
-	call Function1409b
+;	call Function1409b
 	call FixDays
-	jr nc, .skip_set
-	; bit 5: Day count exceeds 139
-	; bit 6: Day count exceeds 255
-	call RecordRTCStatus ; set flag on sRTCStatusFlags
-
-.skip_set
+;	jr nc, .skip_set
+;	; bit 5: Day count exceeds 139
+;	; bit 6: Day count exceeds 255
+;	call RecordRTCStatus ; set flag on sRTCStatusFlags
+;
+;.skip_set
 	call StartRTC
 	ret
 
@@ -117,6 +123,8 @@ Function1409b:
 	ret
 
 Function140ae:
+	ret ; dummy
+
 	call CheckRTCStatus
 	ld c, a
 	and %11000000 ; Day count exceeded 255 or 16383

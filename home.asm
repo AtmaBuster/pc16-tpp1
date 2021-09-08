@@ -16,6 +16,24 @@ Start::
 	nop
 	jp _Start
 
+_Header_Logo:           ds 48
+_Header_Title:          ds 15
+_Header_CGB:            ds 1
+_Header_LicenseeCode:   ds 2
+_Header_SGB:            ds 1
+_Header_CartridgeType:  db TPP1_CARTRIDGE_TYPE
+_Header_ROMSize:        ds 1
+_Header_RAMSize:        db TPP1_RAM_SIZE
+_Header_DestCode:       db TPP1_DESTINATION_CODE
+_Header_OldLicensee:    ds 1
+_Header_MaskROMVer:     ds 1
+_Header_Checksum:       ds 1
+_Header_GlobalChecksum: ds 2
+; TPP1 Header
+_Header_TPP1_MajorVer:   db TPP1_MAJOR_VER
+_Header_TPP1_MinorVer:   db TPP1_MINOR_VER
+_Header_TPP1_RAMSize:    db TPP1_SRAM_SIZE
+_Header_TPP1_ROMFeature: db (1 << TPP1_FEAT_RTC_F) | (1 << TPP1_FEAT_BATTERY_F)
 
 SECTION "Home", ROM0
 
